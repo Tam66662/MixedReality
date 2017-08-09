@@ -32,7 +32,7 @@ public class PotatoManager : Singleton<PotatoManager>, IInputClickHandler {
 #if !UNITY_EDITOR
         WorldAnchorStore.GetAsync(LoadWorldAnchorStore);
 #else
-        LogMe("SKIPPING: UNITY_EDITOR cannot load the world anchor store");
+        //LogMe("SKIPPING: UNITY_EDITOR cannot load the world anchor store");
 #endif
         meshRenderer = this.gameObject.GetComponent<MeshRenderer>();
     }
@@ -69,10 +69,17 @@ public class PotatoManager : Singleton<PotatoManager>, IInputClickHandler {
     // Update is called once per frame
     void Update () {
         // If you have the potato, then it should be placed at the spot of your gaze.
-        if (Placing)
+        if (Placing && HasPotato)
         {
             this.transform.position = Camera.main.transform.position + Camera.main.transform.forward * 1;
             this.transform.Rotate(Vector3.up, rotationAmount * Time.deltaTime);
+            SharingStatus.Instance.SendNetworkUserMessage(SharingStatus.UserMessageId.ObjectTransform, this.transform);
+        }
+        else if (Placing && !HasPotato)
+        {
+            //this.transform.position = Camera.main.transform.position + Camera.main.transform.forward * 1;
+            this.transform.Rotate(Vector3.up, rotationAmount * Time.deltaTime);
+            //SharingStatus.Instance.SendNetworkUserMessage(SharingStatus.UserMessageId.ObjectTransform, this.transform);
         }
     }
 
@@ -168,7 +175,7 @@ public class PotatoManager : Singleton<PotatoManager>, IInputClickHandler {
         var anchor = this.gameObject.AddComponent<WorldAnchor>();
         anchor.OnTrackingChanged += this.Anchor_OnTrackingChanged;
 #else
-        LogMe("SKIPPING: UNITY_EDITOR cannot set the world anchor");
+        //LogMe("SKIPPING: UNITY_EDITOR cannot set the world anchor");
 #endif
     }
 
@@ -186,7 +193,7 @@ public class PotatoManager : Singleton<PotatoManager>, IInputClickHandler {
             LogMe(string.Format("'{0}' anchor has been deleted.", this.gameObject.name));
         }
 #else
-        LogMe("SKIPPING: UNITY_EDITOR cannot remove the world anchor");
+        //LogMe("SKIPPING: UNITY_EDITOR cannot remove the world anchor");
 #endif
     }
 
@@ -194,6 +201,12 @@ public class PotatoManager : Singleton<PotatoManager>, IInputClickHandler {
     {
         if (textMesh != null)
         {
+            if (textMesh.text.Select(t => t == '\n').Count() > 10)
+            {
+                var firstCarriageReturn = textMesh.text.IndexOf('\n', 0);
+                textMesh.text.Remove(0, firstCarriageReturn + 1);
+            }
+
             textMesh.text += string.Format("{0}\n", message);
         }
     }

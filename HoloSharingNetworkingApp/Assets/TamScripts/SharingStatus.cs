@@ -13,6 +13,7 @@ public class SharingStatus : Singleton<SharingStatus> {
     {
         ObjectPickedUp = MessageID.UserMessageIDStart,
         ObjectPlaced,
+        ObjectTransform
     }
 
     /// <summary>
@@ -94,7 +95,7 @@ public class SharingStatus : Singleton<SharingStatus> {
         var userId = msg.ReadInt32();
 
         // Do something here when you receive the message
-        LogMe(string.Format("Message Received: 0x{0}", messageType.ToString("X2")));
+        //LogMe(string.Format("Message Received: 0x{0}", messageType.ToString("X2")));
         var enumValue = (UserMessageId)messageType;
         if (enumValue == UserMessageId.ObjectPickedUp)
         {
@@ -111,13 +112,23 @@ public class SharingStatus : Singleton<SharingStatus> {
             LogMe(string.Format("Vector: {0},{1},{2}", vector.x, vector.y, vector.z));
             LogMe(string.Format("Quaternion: {0},{1},{2},{3}", rotation.x, rotation.y, rotation.z, rotation.w));
 
-            // Before you move the object, remove any world anchor you may have on it.
-            PotatoManager.Instance.RemoveWorldAnchor();
             PotatoManager.Instance.gameObject.transform.localPosition = vector;
             PotatoManager.Instance.gameObject.transform.localRotation = rotation;
             PotatoManager.Placing = false;
             PotatoManager.HasPotato = true;
             PotatoManager.Instance.SetWorldAnchor();
+        }
+        else if (enumValue == UserMessageId.ObjectTransform)
+        {
+            // Get the position and rotation of the potato as the other user is placing it.
+            var vector = new Vector3(msg.ReadFloat(), msg.ReadFloat(), msg.ReadFloat());
+            var rotation = new Quaternion(msg.ReadFloat(), msg.ReadFloat(), msg.ReadFloat(), msg.ReadFloat());
+
+            // Before you move the object, remove any world anchor you may have on it.
+            PotatoManager.Instance.RemoveWorldAnchor();
+
+            PotatoManager.Instance.gameObject.transform.localPosition = vector;
+            PotatoManager.Instance.gameObject.transform.localRotation = rotation;
         }
 
         PotatoManager.Instance.UpdatePotatoColor();
@@ -234,7 +245,7 @@ public class SharingStatus : Singleton<SharingStatus> {
 
     public void SendNetworkUserMessage(UserMessageId messageId, Transform objectTransform = null)
     {
-        LogMe(string.Format("Sending Message: {0}", messageId));
+        //LogMe(string.Format("Sending Message: {0}", messageId));
         if (this.connection != null)
         {
             var networkMessage = this.connection.CreateMessage((byte)messageId);
